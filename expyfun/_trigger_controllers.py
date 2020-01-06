@@ -61,11 +61,23 @@ class ParallelTrigger(object):
                 self._portname = address
                 self._set_data = self._port.setData
             elif sys.platform.startswith('win'):
-                from ctypes import windll
-                if not hasattr(windll, 'inpout32'):
-                    raise SystemError(
-                        'Must have inpout32 installed, see:\n\n'
-                        'http://www.highrez.co.uk/downloads/inpout32/')
+#                from ctypes import windll
+                import ctypes
+                from ctypes import WinDLL
+                try: 
+                    port = ctypes.windll.inpout32
+                except OSError:
+                    try: 
+                       port = ctypes.windll.inpoutx64
+                    except OSError:
+                        raise SystemError(
+                            'Must have inpoutx63.dll installed.\n\n'
+                            'Instructions at https://labsn.github.io/expyfun/parallel_installation.html?highlight=parallel')
+                        
+#                if not hasattr(WinDLL, 'inpout32'):
+#                    raise SystemError(
+#                        'Must have inpout32 installed, see:\n\n'
+#                        'http://www.highrez.co.uk/downloads/inpout32/')
 
                 base = '0x378' if address is None else address
                 logger.info('Expyfun: Using base address %s' % (base,))
@@ -74,7 +86,8 @@ class ParallelTrigger(object):
                 if not isinstance(base, int):
                     raise ValueError('address must be int or None, got %s of '
                                      'type %s' % (base, type(base)))
-                self._port = windll.inpout32
+#                self._port = WinDLL.inpout32
+                self._port = port   
                 mask = np.uint8(1 << 5 | 1 << 6 | 1 << 7)
                 # Use ECP to put the port into byte mode
                 val = int((self._port.Inp32(base + 0x402) & ~mask) | (1 << 5))
